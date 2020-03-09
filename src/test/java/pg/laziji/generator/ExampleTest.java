@@ -20,13 +20,23 @@ public class ExampleTest {
     private GeneratorService generatorService;
 
     @Test
-    public void test() {
+    public void testZip() {
         generatorService.generateZip(new TableItem[]{
                 TableItem.newBuilder()
-                        .tableName("table1")
+                        .tableName("data_dict")
                         .dynamicPathVariable(KeyConsts.CLASS_NAME, "TableA")
                         .build(),
-                new TableItem("table2")
-        }, "/home/code.zip");
+                new TableItem("sys_role")
+        }, "/Users/caoliang/Downloads/code/code.zip");
     }
+//    @Test
+//    public void test() {
+//        generatorService.generateCode(new TableItem[]{
+//                TableItem.newBuilder()
+//                        .tableName("data_dict")
+//                        .dynamicPathVariable(KeyConsts.CLASS_NAME, "TableA")
+//                        .build(),
+//                new TableItem("sys_role")
+//        }, "/Users/caoliang/code");
+//    }
 }

@@ -3,11 +3,11 @@ generator:
   datasource:
     # mysql or oracle, default mysql
     type: mysql
-    url: jdbc:mysql://127.0.0.1:3306/example?characterEncoding=utf-8
+    url: jdbc:mysql://127.0.0.1:3306/leecx?characterEncoding=utf-8
     username: root
-    password: root
+    password: root1234
 
-  package: com.g.example
+  package: com.example
   template:
     base-path: mybatis2
     output-paths: |
@@ -15,3 +15,4 @@ generator:
       Query.java.vm: main/java/{packagePath}/database/query/{className}Query.java
       Dao.java.vm: main/java/{packagePath}/database/dao/{className}Dao.java
       Service.java.vm: main/java/{packagePath}/database/service/{className}Service.java
+      ServiceImp.java.vm: main/java/{packagePath}/database/service/{className}ServiceIml.java

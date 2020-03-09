@@ -1,0 +1,114 @@
+#set ( $sys = ${system} )
+#set ( $dp = ${dynamicPath} )
+#set ( $tpl = ${template} )
+#set ( $suffix = "DO" )
+#if(${table.tableType}=="VIEW")
+    #set ( $suffix = "VO" )
+#end
+#set ( $package = ${sys.config.get("generator.package")} )
+#set ( $className = ${dp.className} )
+package ${package}.database.service;
+
+import java.util.*;
+import com.dfund.clearing.account.commons.dto.Page;
+import com.dfund.clearing.account.commons.util.DateUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Service;
+import org.laziji.commons.mybatis.service.Base${suffix}Service;
+
+import ${package}.database.model.${className};
+
+@Service
+/**
+* 基础 ${className}Service
+*/
+public class ${className}Service {
+
+    @Resource(name="actorMapper")
+    private ${className}Mapper _mapper;
+
+
+    private ${className}Search createSearch(${className} bean)
+    {
+        ${className}Example search = new ${className}Example();
+        Criteria cra = search.createCriteria();
+        if(bean!=null){
+        #foreach (${column} in ${table.columns})
+            #if(${column.attributeType}=='String')
+        if(StringUtils.isNotBlank(bean.get${column.uppercaseAttributeName}())){
+                cra.and${column.uppercaseAttributeName}EqualTo(bean.get${column.uppercaseAttributeName}());
+             }
+            #else
+             if(null != bean.get${column.uppercaseAttributeName}()){
+                cra.and${column.uppercaseAttributeName}EqualTo(bean.get${column.uppercaseAttributeName}());
+             }
+            #end
+        #end
+        }
+        if(bean.getOrderByClause()!=null)
+        {
+            search.setOrderByClause(bean.getOrderByClause());
+        }
+        return search;
+    }
+
+    public int countByBean(${className} bean) {
+        ${className}Search search = this.createSearch(bean);
+        return _mapper.countByExample(search);
+    }
+
+    public int delete(Long id) {
+        if(id == null || id < 0) return 0;
+        int val = _mapper.deleteByPrimaryKey(id);
+        return val;
+    }
+
+    public int deleteByBean(${className} bean) {
+        ${className}Search search = this.createSearch(bean);
+        int val = _mapper.deleteByExample(search);
+        return val;
+    }
+
+    public int insert(${className} bean) {
+        if(bean == null) return 0;
+        Date currentTime = DateUtil.getDate();
+        bean.setGmtCreate(currentTime);
+        bean.setGmtModified(currentTime);
+        int val =  _mapper.insertSelective(bean);
+        return val;
+    }
+
+    public int updateByPrimaryKey(${className} bean) {
+        if(bean == null) return 0;
+        Date currentTime = DateUtil.getDate();
+        bean.setGmtModified(currentTime);
+        int val = _mapper.updateByPrimaryKeySelective(bean);
+        return val;
+    }
+
+    public int updateBySelective(${className} bean,searchBean) {
+        if(bean == null) return 0;
+        {bean_timestamp_update_time}
+        int val = _mapper.updateByExampleSelective(bean,createSearch(searchBean));
+        return val;
+    }
+
+    public ${className} selectByPrimaryKey(Long id) {
+        if(id == null || id < 0) return null;
+        ${className}  bean=_mapper.selectByPrimaryKey(id);
+        return bean;
+    }
+
+    public List<${className}> selectByBean(${className} bean,) {
+        ${className}Search search = this.createSearch(bean);
+        page = Math.max(1, page);
+        size = Math.max(1, size);
+        long start = Page.limitStart(page, size);
+
+        search.setOffset(start);
+        search.setLimit(size);
+        List<${className}> list= _mapper.selectByExample(search);
+        return list;
+    }
+
+}
