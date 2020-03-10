@@ -3,11 +3,11 @@ generator:
   datasource:
     # mysql or oracle, default mysql
     type: mysql
-    url: jdbc:mysql://127.0.0.1:3306/leecx?characterEncoding=utf-8
+    url: jdbc:mysql://127.0.0.1:3306/fundchain?characterEncoding=utf-8
     username: root
     password: root1234
 
-  package: com.example
+  package: com.dfund
   template:
     base-path: mybatis2
     output-paths: |

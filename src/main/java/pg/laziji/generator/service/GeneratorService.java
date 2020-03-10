@@ -7,4 +7,6 @@ public interface GeneratorService {
     void generateZip(String[] tableNames, String zipPath);
 
     void generateZip(TableItem[] tableItems, String zipPath);
+
+    void generateCodeFile(TableItem[] tableItems, String zipPath);
 }

@@ -13,6 +13,7 @@ import pg.laziji.generator.model.TableItem;
 import pg.laziji.generator.model.TemplateContext;
 import pg.laziji.generator.service.GeneratorService;
 import pg.laziji.generator.service.TableService;
+import pg.laziji.generator.util.FileUtils;
 import pg.laziji.generator.util.SpringContextUtils;
 
 import java.io.*;
@@ -74,6 +75,27 @@ public class GeneratorServiceImpl implements GeneratorService {
         }
     }
 
+    @Override
+    public void generateCodeFile(TableItem[] tableItems, String filePath) {
+        TableService tableService = SpringContextUtils.getBean(datasourceType, TableService.class);
+        try  {
+                for (TableItem item : tableItems) {
+                    Table table = tableService.getTable(item.getTableName());
+                    if (table == null) {
+                        log.warn("表[{}] 信息查询失败", item.getTableName());
+                        continue;
+                    }
+                    generatorCode(TemplateContext.newBuilder()
+                            .templateVariables(item.getTemplateVariables())
+                            .table(table)
+                            .dynamicPathVariables(item.getDynamicPathVariables())
+                            .build(), filePath);
+                }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private static String replace(String pattern, Map<String, String> context) throws Exception {
         char[] patternChars = pattern.toCharArray();
         StringBuilder valueBuffer = new StringBuilder();
@@ -115,6 +137,24 @@ public class GeneratorServiceImpl implements GeneratorService {
                 zos.putNextEntry(new ZipEntry(entry.getValue()));
                 IOUtils.write(writer.toString(), zos, "UTF-8");
                 zos.closeEntry();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void generatorCode(TemplateContext context, String filePath) {
+        VelocityContext velocityContext = new VelocityContext(context.toMap());
+        Map<String, String> outputPathMap = parseTemplateOutputPaths(context);
+        for (Map.Entry<String, String> entry : outputPathMap.entrySet()) {
+            Template template = Velocity.getTemplate(entry.getKey(), "UTF-8");
+            try (StringWriter writer = new StringWriter()) {
+                String thisFilePath = filePath+entry.getValue();
+                template.merge(velocityContext, writer);
+                FileUtils.fileLinesWrite(thisFilePath, writer.toString(),false);
+//                zos.putNextEntry(new ZipEntry(entry.getValue()));
+//                IOUtils.write(writer.toString(), fos, "UTF-8");
+//                zos.closeEntry();
             } catch (IOException e) {
                 e.printStackTrace();
             }

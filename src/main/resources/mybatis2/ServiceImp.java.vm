@@ -7,11 +7,20 @@
 #end
 #set ( $package = ${sys.config.get("generator.package")} )
 #set ( $className = ${dp.className} )
+
+#set ( $exitSign = "0" )
 package ${package}.database.service;
 
 import java.util.*;
-import com.dfund.clearing.account.commons.dto.Page;
-import com.dfund.clearing.account.commons.util.DateUtil;
+import com.dfund.clearing.${className}.util.Page;
+import com.dfund.clearing.${className}.util.DateUtil;
+import com.dfund.clearing.${className}.util.EncryptUtil;
+import com.dfund.clearing.${className}.util.SignHashMap;
+import com.dfund.clearing.constant.Constants;
+import com.dfund.clearing.${className}.exception.BusinessErrorCodeEnum;
+import com.dfund.clearing.${className}.exception.BusinessException;
+
+import org.springframework.util.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.laziji.commons.mybatis.service.Base${suffix}Service;
@@ -20,11 +29,11 @@ import ${package}.database.model.${className};
 
 @Service
 /**
-* 基础 ${className}Service
+* 基础Service   ${table.tableComment}
 */
 public class ${className}Service {
 
-    @Resource(name="actorMapper")
+    @Resource
     private ${className}Mapper _mapper;
 
 
@@ -33,24 +42,24 @@ public class ${className}Service {
         ${className}Example search = new ${className}Example();
         Criteria cra = search.createCriteria();
         if(bean!=null){
-        #foreach (${column} in ${table.columns})
-            #if(${column.attributeType}=='String')
-        if(StringUtils.isNotBlank(bean.get${column.uppercaseAttributeName}())){
+#foreach (${column} in ${table.columns})
+#if(${column.columnName}=='sign') #set ( $exitSign = "1" ) #end
+#if(${column.attributeType}=='String')
+            if(StringUtils.isNotBlank(bean.get${column.uppercaseAttributeName}())){
                 cra.and${column.uppercaseAttributeName}EqualTo(bean.get${column.uppercaseAttributeName}());
-             }
-            #else
-             if(null != bean.get${column.uppercaseAttributeName}()){
+            }
+#else
+            if(null != bean.get${column.uppercaseAttributeName}()){
                 cra.and${column.uppercaseAttributeName}EqualTo(bean.get${column.uppercaseAttributeName}());
-             }
-            #end
-        #end
-        }
-        if(bean.getOrderByClause()!=null)
-        {
+            }
+#end
+#end
+         }
+        if(bean.getOrderByClause()!=null){
             search.setOrderByClause(bean.getOrderByClause());
         }
         return search;
-    }
+}
 
     public int countByBean(${className} bean) {
         ${className}Search search = this.createSearch(bean);
@@ -74,6 +83,14 @@ public class ${className}Service {
         Date currentTime = DateUtil.getDate();
         bean.setGmtCreate(currentTime);
         bean.setGmtModified(currentTime);
+#if(${exitSign}==1)
+        String sign = this.sign(bean);
+        if (StringUtils.isBlank(sign)) {
+            log.error("insert-${className}签名失败|updateBean=" + bean);
+            throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "insert-${className}签名失败|insertBean=" + bean);
+        }
+        bean.setSign(sign);
+#end
         int val =  _mapper.insertSelective(bean);
         return val;
     }
@@ -82,13 +99,30 @@ public class ${className}Service {
         if(bean == null) return 0;
         Date currentTime = DateUtil.getDate();
         bean.setGmtModified(currentTime);
+#if(${exitSign}==1)
+        String sign = this.sign(bean);
+        if (StringUtils.isBlank(sign)) {
+            log.error("updateByPrimaryKey-${className}签名失败|updateBean=" + bean);
+            throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "更新-updateByPrimaryKey-${className}签名失败|updateBean=" + bean);
+        }
+        bean.setSign(sign);
+#end
         int val = _mapper.updateByPrimaryKeySelective(bean);
         return val;
     }
 
-    public int updateBySelective(${className} bean,searchBean) {
+    public int updateBySelected(${className} bean,searchBean) {
         if(bean == null) return 0;
-        {bean_timestamp_update_time}
+        Date currentTime = DateUtil.getDate();
+        bean.setGmtModified(currentTime);
+#if(${exitSign}==1)
+        String sign = this.sign(bean);
+        if (StringUtils.isBlank(sign)) {
+            log.error("updateBySelected-${className}签名失败|updateBean=" + bean);
+            throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "更新-updateBySelected-${className}签名失败|updateBean=" + bean);
+        }
+        bean.setSign(sign);
+#end
         int val = _mapper.updateByExampleSelective(bean,createSearch(searchBean));
         return val;
     }
@@ -96,10 +130,40 @@ public class ${className}Service {
     public ${className} selectByPrimaryKey(Long id) {
         if(id == null || id < 0) return null;
         ${className}  bean=_mapper.selectByPrimaryKey(id);
+#if(${exitSign}==1)
+        boolean verifyResult = this.verifySign(bean);
+        if (!verifyResult) {
+            log.error("查询-selectByPrimaryKey-${className}记录验证签名失败 bean={}", bean);
+            throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "查询-selectByPrimaryKey-${className}验证签名失败 queryBean = " + bean);
+        }
+#end
         return bean;
     }
 
-    public List<${className}> selectByBean(${className} bean,) {
+    public ${className} selectOne(${className} bean,boolean forUpdate) {
+        if(id == null || id < 0) return null;
+        ${className}Search search = this.createSearch(bean);
+        search.setForUpdate(forUpdate);
+        List<${className}> list= _mapper.selectByExample(search);
+        if (!CollectionUtils.isEmpty(list)) {
+            if (list.size() > 1) {
+                throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "查询-selectOne-${className} 数据错误 记录数量大于1个 queryBean = " + bean+"   forUpdate="+forUpdate);
+            }
+            ${className} record = list.get(0);
+#if(${exitSign}==1)
+            boolean verifyResult = this.verifySign(bean);
+            if (!verifyResult) {
+                log.error("查询-selectOne-${className}记录验证签名失败 bean={}", bean);
+                throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "${className} 验证签名失败 queryBean = " + bean+"   forUpdate="+forUpdate);
+            }
+#end
+            return record;
+        }
+
+        return null;
+    }
+
+    public List<${className}> selectByBean(${className} bean) {
         ${className}Search search = this.createSearch(bean);
         page = Math.max(1, page);
         size = Math.max(1, size);
@@ -108,7 +172,86 @@ public class ${className}Service {
         search.setOffset(start);
         search.setLimit(size);
         List<${className}> list= _mapper.selectByExample(search);
+#if(${exitSign}==1)
+        if (!CollectionUtils.isEmpty(list)) {
+            for (${className} record : list) {
+                boolean verifyResult = this.verifySign(bean);
+                if (!verifyResult) {
+                    log.error("查询-selectByBean-${className}列表验证签名失败 record={}", bean);
+                    throw new ClearingException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "查询-selectByBean-${className}列表验证签名失败 record = " + bean);
+                }
+            }
+        }
+#end
         return list;
     }
+#if(${exitSign}==1)
+    /**
+    * 验签方法
+    * @return
+    */
+    private boolean verifySign(${className} bean) {
 
+        String content = null;
+//        String sha256 = null;
+
+        try {
+
+            SignHashMap signMap = new SignHashMap();
+#foreach (${column} in ${table.columns})
+#if(${column.attributeType}=='BigDecimal')
+            signMap.put("${column.attributeName}", bean.get${column.uppercaseAttributeName}().stripTrailingZeros().toPlainString());
+#else
+            signMap.put("${column.attributeName}", bean.get${column.uppercaseAttributeName}());
+#end
+#end
+            content = EncryptUtil.sortClearingSignContent(signMap);
+//            sha256 = EncryptUtil.sha256Base64(content);
+            boolean verifyResult = EncryptUtil.rsaVerifySign(content, bean.getSign(),
+                    Constants.CLEARING_PUBLIC_KEY_FOR_DB, "UTF-8");
+
+            if (!verifyResult) {
+                log.error("verifySign-${className}验证签名失败|${className}={}|content={}", ${className}, content);
+            }
+            return verifyResult;
+        } catch (Exception e) {
+            log.error("verifySign-${className}验证签名失败|${className}={}|content={}", ${className}, content);
+            log.error("", e);
+        }
+        return false;
+    }
+
+    /**
+    * 签名方法
+    * @return
+    */
+    public String sign(${className} bean) {
+
+        String content = null;
+//        String sha256 = null;
+        try {
+            SignHashMap signMap = new SignHashMap();
+#foreach (${column} in ${table.columns})
+#if(${column.attributeType}=='BigDecimal')
+            signMap.put("${column.attributeName}", bean.get${column.uppercaseAttributeName}().stripTrailingZeros().toPlainString());
+#else
+            signMap.put("${column.attributeName}", bean.get${column.uppercaseAttributeName}());
+#end
+#end
+            content = EncryptUtil.sortClearingSignContent(signMap);
+//            sha256 = EncryptUtil.sha256Base64(content);
+            String sign = EncryptUtil.rsaSign(content, Constants.CLEARING_PRIVATE_KEY_FOR_DB, "UTF-8");
+
+            log.info("sign-${className}签名成功|${className}={}|content={}|sign={}", bean, content, sign);
+
+            return sign;
+
+        } catch (Exception e) {
+            log.error("sign-${className}签名失败|${className}={}|content={}", bean, content);
+            log.error("", e);
+        }
+
+        return null;
+    }
+#end
 }

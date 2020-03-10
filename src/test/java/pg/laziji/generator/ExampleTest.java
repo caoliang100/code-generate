@@ -19,24 +19,20 @@ public class ExampleTest {
     @Resource
     private GeneratorService generatorService;
 
-    @Test
-    public void testZip() {
-        generatorService.generateZip(new TableItem[]{
-                TableItem.newBuilder()
-                        .tableName("data_dict")
-                        .dynamicPathVariable(KeyConsts.CLASS_NAME, "TableA")
-                        .build(),
-                new TableItem("sys_role")
-        }, "/Users/caoliang/Downloads/code/code.zip");
-    }
 //    @Test
-//    public void test() {
-//        generatorService.generateCode(new TableItem[]{
+//    public void testZip() {
+//        generatorService.generateZip(new TableItem[]{
 //                TableItem.newBuilder()
-//                        .tableName("data_dict")
+//                        .tableName("clearing_account")
 //                        .dynamicPathVariable(KeyConsts.CLASS_NAME, "TableA")
-//                        .build(),
-//                new TableItem("sys_role")
-//        }, "/Users/caoliang/code");
+//                        .build()
+//                ,new TableItem("sys_role")
+//        }, "/Users/caoliang/Downloads/code/code.zip");
 //    }
+    @Test
+    public void test() {
+        generatorService.generateCodeFile(new TableItem[]{
+                new TableItem("clearing_account")
+        }, "/Users/caoliang/Downloads/code/");
+    }
 }

@@ -12,7 +12,7 @@ public class Column {
     private static final Map<String, String> typeMap = new HashMap<>();
 
     static {
-        typeMap.put("tinyint", "Integer");
+        typeMap.put("tinyint", "Byte");
         typeMap.put("smallint", "Integer");
         typeMap.put("mediumint", "Integer");
         typeMap.put("int", "Integer");
@@ -20,7 +20,7 @@ public class Column {
         typeMap.put("bigint", "Long");
         typeMap.put("float", "Float");
         typeMap.put("double", "Double");
-        typeMap.put("decimal", "Long");
+        typeMap.put("decimal", "BigDecimal");
         typeMap.put("bit", "Boolean");
         typeMap.put("char", "String");
         typeMap.put("varchar", "String");
