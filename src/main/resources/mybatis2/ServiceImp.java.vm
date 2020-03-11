@@ -9,38 +9,46 @@
 #set ( $className = ${dp.className} )
 
 #set ( $exitSign = "0" )
-package ${package}.database.service;
+package ${package}.biz.service;
 
 import java.util.*;
-import com.dfund.clearing.${className}.util.Page;
-import com.dfund.clearing.${className}.util.DateUtil;
-import com.dfund.clearing.${className}.util.EncryptUtil;
-import com.dfund.clearing.${className}.util.SignHashMap;
-import com.dfund.clearing.constant.Constants;
-import com.dfund.clearing.${className}.exception.BusinessErrorCodeEnum;
-import com.dfund.clearing.${className}.exception.BusinessException;
+import com.dfund.clearing.account.util.Page;
+import com.dfund.clearing.account.util.DateUtil;
+import com.dfund.clearing.account.util.EncryptUtil;
+import com.dfund.clearing.account.util.SignHashMap;
+import com.dfund.clearing.account.util.Constants;
+import com.dfund.clearing.account.exception.BusinessErrorCodeEnum;
+import com.dfund.clearing.account.exception.BusinessException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
-import org.laziji.commons.mybatis.service.Base${suffix}Service;
+import javax.annotation.Resource;
+import ${package}.dal.dao.${className}Mapper;
+import ${package}.dal.model.${className}Example;
+import ${package}.dal.model.${className};
 
-import ${package}.database.model.${className};
-
-@Service
 /**
 * 基础Service   ${table.tableComment}
 */
+@Service
 public class ${className}Service {
+
+    private static final Logger log = LoggerFactory.getLogger(${className}.class);
+
+    //cacheKey
+    private final static String cacheKey="clearing_account_${className}";
 
     @Resource
     private ${className}Mapper _mapper;
 
 
-    private ${className}Search createSearch(${className} bean)
+    private ${className}Example createExample(${className} bean,String orderClause)
     {
         ${className}Example search = new ${className}Example();
-        Criteria cra = search.createCriteria();
+        ${className}Example.Criteria cra = search.createCriteria();
         if(bean!=null){
 #foreach (${column} in ${table.columns})
 #if(${column.columnName}=='sign') #set ( $exitSign = "1" ) #end
@@ -55,14 +63,14 @@ public class ${className}Service {
 #end
 #end
          }
-        if(bean.getOrderByClause()!=null){
-            search.setOrderByClause(bean.getOrderByClause());
+        if(StringUtils.isNotBlank(orderClause)){
+            search.setOrderByClause(orderClause);
         }
         return search;
 }
 
-    public int countByBean(${className} bean) {
-        ${className}Search search = this.createSearch(bean);
+    public Long countByBean(${className} bean) {
+        ${className}Example search = this.createExample(bean,null);
         return _mapper.countByExample(search);
     }
 
@@ -73,7 +81,7 @@ public class ${className}Service {
     }
 
     public int deleteByBean(${className} bean) {
-        ${className}Search search = this.createSearch(bean);
+        ${className}Example search = this.createExample(bean,null);
         int val = _mapper.deleteByExample(search);
         return val;
     }
@@ -96,7 +104,7 @@ public class ${className}Service {
     }
 
     public int updateByPrimaryKey(${className} bean) {
-        if(bean == null) return 0;
+        if(bean == null || null == bean.getId()) return 0;
         Date currentTime = DateUtil.getDate();
         bean.setGmtModified(currentTime);
 #if(${exitSign}==1)
@@ -111,7 +119,13 @@ public class ${className}Service {
         return val;
     }
 
-    public int updateBySelected(${className} bean,searchBean) {
+    /**
+    * 根据筛选 searchBean 条件，跟新 bean
+    * @param bean 待更新进去的
+    * @param searchBean 查询条件
+    * @return
+    */
+    public int updateBySelected(${className} bean,${className} searchBean) {
         if(bean == null) return 0;
         Date currentTime = DateUtil.getDate();
         bean.setGmtModified(currentTime);
@@ -123,7 +137,7 @@ public class ${className}Service {
         }
         bean.setSign(sign);
 #end
-        int val = _mapper.updateByExampleSelective(bean,createSearch(searchBean));
+        int val = _mapper.updateByExampleSelective(bean,createExample(searchBean,null));
         return val;
     }
 
@@ -140,31 +154,60 @@ public class ${className}Service {
         return bean;
     }
 
-    public ${className} selectOne(${className} bean,boolean forUpdate) {
-        if(id == null || id < 0) return null;
-        ${className}Search search = this.createSearch(bean);
+    /**
+    * 根据条件查询出一个，如果查询出多个  判定业务异常，处理结束
+    * 不会进行行锁，如果一个满足条件的都没有，会正常返回 null
+    * @param bean 筛选 bean 的条件
+    * @param bean
+    */
+    public ${className} selectOne(${className} bean) {
+        return selectOne(bean,false,false);
+    }
+    /**
+    * 根据条件查询出一个，如果查询出多个  判定业务异常，处理结束
+    * @param bean 筛选 bean 的条件
+    * @param forUpdate 查出来是否 要锁行
+    * @param needOne true: 如果一个都没查出来，业务不正常，业务异常，处理结束。  false:没查出来业务也算正常
+    */
+    public ${className} selectOne(${className} bean,boolean forUpdate,boolean needOne) {
+        if(bean == null ) return null;
+        ${className}Example search = this.createExample(bean,null);
         search.setForUpdate(forUpdate);
         List<${className}> list= _mapper.selectByExample(search);
         if (!CollectionUtils.isEmpty(list)) {
             if (list.size() > 1) {
+                log.error("查询-selectOne-${className}记录数量大于1个 bean={}", bean);
                 throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "查询-selectOne-${className} 数据错误 记录数量大于1个 queryBean = " + bean+"   forUpdate="+forUpdate);
             }
             ${className} record = list.get(0);
 #if(${exitSign}==1)
-            boolean verifyResult = this.verifySign(bean);
+            boolean verifyResult = this.verifySign(record);
             if (!verifyResult) {
                 log.error("查询-selectOne-${className}记录验证签名失败 bean={}", bean);
-                throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "${className} 验证签名失败 queryBean = " + bean+"   forUpdate="+forUpdate);
+                throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "查询-selectOne-${className} 验证签名失败 queryBean = " + bean+"   forUpdate="+forUpdate);
             }
 #end
             return record;
+        }else{
+            if(needOne){
+                log.error("查询-selectOne-${className} 未查询到任何记录  bean={}", bean);
+                throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "查询-selectOne-${className} 未查询到任何记录 queryBean = " + bean+"   forUpdate="+forUpdate);
+            }
+
         }
 
         return null;
     }
 
-    public List<${className}> selectByBean(${className} bean) {
-        ${className}Search search = this.createSearch(bean);
+    /**
+    * 筛选列表
+    * @param page 第几页
+    * @param size 每页条数
+    * @param orderClause  排序条件，如："id asc"
+    * @return
+    */
+    public List<${className}> selectByBean(${className} bean,int page, int size,String orderClause) {
+        ${className}Example search = this.createExample(bean,orderClause);
         page = Math.max(1, page);
         size = Math.max(1, size);
         long start = Page.limitStart(page, size);
@@ -175,10 +218,10 @@ public class ${className}Service {
 #if(${exitSign}==1)
         if (!CollectionUtils.isEmpty(list)) {
             for (${className} record : list) {
-                boolean verifyResult = this.verifySign(bean);
+                boolean verifyResult = this.verifySign(record);
                 if (!verifyResult) {
                     log.error("查询-selectByBean-${className}列表验证签名失败 record={}", bean);
-                    throw new ClearingException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "查询-selectByBean-${className}列表验证签名失败 record = " + bean);
+                    throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "查询-selectByBean-${className}列表验证签名失败 record = " + bean);
                 }
             }
         }
@@ -193,7 +236,7 @@ public class ${className}Service {
     private boolean verifySign(${className} bean) {
 
         String content = null;
-//        String sha256 = null;
+        String sha256 = null;
 
         try {
 
@@ -206,16 +249,16 @@ public class ${className}Service {
 #end
 #end
             content = EncryptUtil.sortClearingSignContent(signMap);
-//            sha256 = EncryptUtil.sha256Base64(content);
-            boolean verifyResult = EncryptUtil.rsaVerifySign(content, bean.getSign(),
+            sha256 = EncryptUtil.sha256Base64(content);
+            boolean verifyResult = EncryptUtil.rsaVerifySign(sha256, bean.getSign(),
                     Constants.CLEARING_PUBLIC_KEY_FOR_DB, "UTF-8");
 
             if (!verifyResult) {
-                log.error("verifySign-${className}验证签名失败|${className}={}|content={}", ${className}, content);
+                log.error("verifySign-${className}验证签名失败|${className}={}|content={}|sha256={}", bean, content,sha256);
             }
             return verifyResult;
         } catch (Exception e) {
-            log.error("verifySign-${className}验证签名失败|${className}={}|content={}", ${className}, content);
+            log.error("verifySign-${className}验证签名失败|${className}={}|content={}|sha256={}", bean, content,sha256);
             log.error("", e);
         }
         return false;
@@ -228,7 +271,7 @@ public class ${className}Service {
     public String sign(${className} bean) {
 
         String content = null;
-//        String sha256 = null;
+        String sha256 = null;
         try {
             SignHashMap signMap = new SignHashMap();
 #foreach (${column} in ${table.columns})
@@ -239,15 +282,15 @@ public class ${className}Service {
 #end
 #end
             content = EncryptUtil.sortClearingSignContent(signMap);
-//            sha256 = EncryptUtil.sha256Base64(content);
-            String sign = EncryptUtil.rsaSign(content, Constants.CLEARING_PRIVATE_KEY_FOR_DB, "UTF-8");
+            sha256 = EncryptUtil.sha256Base64(content);
+            String sign = EncryptUtil.rsaSign(sha256, Constants.CLEARING_PRIVATE_KEY_FOR_DB, "UTF-8");
 
-            log.info("sign-${className}签名成功|${className}={}|content={}|sign={}", bean, content, sign);
+            log.info("sign-${className}签名成功|${className}={}|content={}|sha256={}|sign={}", bean, content,sha256, sign);
 
             return sign;
 
         } catch (Exception e) {
-            log.error("sign-${className}签名失败|${className}={}|content={}", bean, content);
+            log.error("sign-${className}签名失败|${className}={}|content={}|sha256={}", bean, content,sha256);
             log.error("", e);
         }
 

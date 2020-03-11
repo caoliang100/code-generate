@@ -11,8 +11,4 @@ generator:
   template:
     base-path: mybatis2
     output-paths: |
-      Model.java.vm: main/java/{packagePath}/database/model/{className}.java
-      Query.java.vm: main/java/{packagePath}/database/query/{className}Query.java
-      Dao.java.vm: main/java/{packagePath}/database/dao/{className}Dao.java
-      Service.java.vm: main/java/{packagePath}/database/service/{className}Service.java
       ServiceImp.java.vm: src/main/java/{packagePath}/biz/service/{className}Service.java
