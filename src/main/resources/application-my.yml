@@ -7,7 +7,7 @@ generator:
     username: root
     password: root1234
 
-  package: com.dfund.clearing.account
+  package: com.renrenbit.clearing.account
   template:
     base-path: mybatis2
     output-paths: |
