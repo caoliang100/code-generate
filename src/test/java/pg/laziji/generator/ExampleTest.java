@@ -32,16 +32,16 @@ public class ExampleTest {
     @Test
     public void test() {
         generatorService.generateCodeFile(new TableItem[]{
-                new TableItem("clearing_user_info"),
-                new TableItem("clearing_account"),
-                new TableItem("clearing_merchant"),
-                new TableItem("clearing_token"),
-                new TableItem("clearing_business_type"),
-                new TableItem("clearing_trade_fee"),
-                new TableItem("clearing_amount_record"),
-                new TableItem("clearing_freeze_record"),
-                new TableItem("clearing_push_message"),
-                new TableItem("clearing_business_type"),
+//                new TableItem("clearing_user_info"),
+//                new TableItem("clearing_account"),
+//                new TableItem("clearing_merchant"),
+//                new TableItem("clearing_token"),
+//                new TableItem("clearing_business_type"),
+//                new TableItem("clearing_trade_fee"),
+//                new TableItem("clearing_amount_record"),
+//                new TableItem("clearing_freeze_record"),
+//                new TableItem("clearing_push_message"),
+//                new TableItem("clearing_business_type"),
                 new TableItem("clearing_transfer_record")
         }, "/Users/caoliang/IdeaProjects/clearing-account/clearing-account-biz/");
     }
