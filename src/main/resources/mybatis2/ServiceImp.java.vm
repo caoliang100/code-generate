@@ -220,7 +220,7 @@ public class ${className}Service {
             for (${className} record : list) {
                 boolean verifyResult = this.verifySign(record);
                 if (!verifyResult) {
-                    log.error("查询-selectByBean-${className}列表验证签名失败 record={}", bean);
+                    log.error("查询-selectByBean-${className}列表验证签名失败 record={}", record);
                     throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "查询-selectByBean-${className}列表验证签名失败 record = " + bean);
                 }
             }
