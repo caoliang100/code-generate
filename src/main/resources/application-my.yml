@@ -11,4 +11,21 @@ generator:
   template:
     base-path: mybatis2
     output-paths: |
-      ServiceImp.java.vm: src/main/java/{packagePath}/biz/service/{className}Service.java
+      ServiceImp.java.ca.vm: src/main/java/{packagePath}/biz/service/{className}Service.java
+
+
+
+#generator:
+#  datasource:
+#    # mysql or oracle, default mysql
+#    type: mysql
+#        url: jdbc:mysql://127.0.0.1:3306/finance?characterEncoding=utf-8
+#    username: root
+#    password: root1234
+#
+#    package: com.renrenbit.finance
+#  template:
+#    base-path: mybatis2
+#    output-paths: |
+#            ServiceImp.java.vm: src/main/java/{packagePath}/biz/base/service/{className}Service.java
+

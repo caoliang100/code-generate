@@ -9,13 +9,16 @@
 #set ( $className = ${dp.className} )
 
 #set ( $exitSign = "0" )
-package ${package}.biz.base.service;
+package ${package}.biz.service;
 
 import java.util.*;
-import com.renrenbit.finance.dto.Page;
-import com.renrenbit.finance.enums.ReturnCodeEnum;
-import com.renrenbit.finance.exception.BusinessException;
-import com.renrenbit.finance.util.DateUtil;
+import com.renrenbit.clearing.account.util.Page;
+import com.renrenbit.clearing.account.util.DateUtil;
+import com.renrenbit.clearing.account.util.EncryptUtil;
+import com.renrenbit.clearing.account.util.SignHashMap;
+import com.renrenbit.clearing.account.util.Constants;
+import com.renrenbit.clearing.account.exception.BusinessErrorCodeEnum;
+import com.renrenbit.clearing.account.exception.BusinessException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,7 +95,7 @@ public class ${className}Service {
         String sign = this.sign(bean);
         if (StringUtils.isBlank(sign)) {
             log.error("insert-${className}签名失败|updateBean=" + bean);
-            throw new BusinessException(ReturnCodeEnum.INNER_LOGIN, "insert-${className}签名失败|insertBean=" + bean);
+            throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "insert-${className}签名失败|insertBean=" + bean);
         }
         bean.setSign(sign);
 #end
@@ -108,7 +111,7 @@ public class ${className}Service {
         String sign = this.sign(bean);
         if (StringUtils.isBlank(sign)) {
             log.error("updateByPrimaryKey-${className}签名失败|updateBean=" + bean);
-            throw new BusinessException(ReturnCodeEnum.INNER_LOGIN, "更新-updateByPrimaryKey-${className}签名失败|updateBean=" + bean);
+            throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "更新-updateByPrimaryKey-${className}签名失败|updateBean=" + bean);
         }
         bean.setSign(sign);
 #end
@@ -122,7 +125,7 @@ public class ${className}Service {
     * @param searchBean 查询条件
     * @return
     */
-    public int updateBySelected(${className} bean, ${className} searchBean) {
+    public int updateBySelected(${className} bean,${className} searchBean) {
         if(bean == null) return 0;
         Date currentTime = DateUtil.getDate();
         bean.setGmtModified(currentTime);
@@ -130,7 +133,7 @@ public class ${className}Service {
         String sign = this.sign(bean);
         if (StringUtils.isBlank(sign)) {
             log.error("updateBySelected-${className}签名失败|updateBean=" + bean);
-            throw new BusinessException(ReturnCodeEnum.INNER_LOGIN, "更新-updateBySelected-${className}签名失败|updateBean=" + bean);
+            throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "更新-updateBySelected-${className}签名失败|updateBean=" + bean);
         }
         bean.setSign(sign);
 #end
@@ -145,7 +148,7 @@ public class ${className}Service {
         boolean verifyResult = this.verifySign(bean);
         if (!verifyResult) {
             log.error("查询-selectByPrimaryKey-${className}记录验证签名失败 bean={}", bean);
-            throw new BusinessException(ReturnCodeEnum.INNER_LOGIN, "查询-selectByPrimaryKey-${className}验证签名失败 queryBean = " + bean);
+            throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "查询-selectByPrimaryKey-${className}验证签名失败 queryBean = " + bean);
         }
 #end
         return bean;
@@ -166,7 +169,7 @@ public class ${className}Service {
     * @param forUpdate 查出来是否 要锁行
     * @param needOne true: 如果一个都没查出来，业务不正常，业务异常，处理结束。  false:没查出来业务也算正常
     */
-    public ${className} selectOne(${className} bean, boolean forUpdate, boolean needOne) {
+    public ${className} selectOne(${className} bean,boolean forUpdate,boolean needOne) {
         if(bean == null ) return null;
         ${className}Example search = this.createExample(bean,null);
         search.setForUpdate(forUpdate);
@@ -174,21 +177,21 @@ public class ${className}Service {
         if (!CollectionUtils.isEmpty(list)) {
             if (list.size() > 1) {
                 log.error("查询-selectOne-${className}记录数量大于1个 bean={}", bean);
-                throw new BusinessException(ReturnCodeEnum.INNER_LOGIN, "查询-selectOne-${className} 数据错误 记录数量大于1个 queryBean = " + bean+"   forUpdate="+forUpdate);
+                throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "查询-selectOne-${className} 数据错误 记录数量大于1个 queryBean = " + bean+"   forUpdate="+forUpdate);
             }
             ${className} record = list.get(0);
 #if(${exitSign}==1)
             boolean verifyResult = this.verifySign(record);
             if (!verifyResult) {
                 log.error("查询-selectOne-${className}记录验证签名失败 bean={}", bean);
-                throw new BusinessException(ReturnCodeEnum.INNER_LOGIN, "查询-selectOne-${className} 验证签名失败 queryBean = " + bean+"   forUpdate="+forUpdate);
+                throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "查询-selectOne-${className} 验证签名失败 queryBean = " + bean+"   forUpdate="+forUpdate);
             }
 #end
             return record;
         }else{
             if(needOne){
                 log.error("查询-selectOne-${className} 未查询到任何记录  bean={}", bean);
-                throw new BusinessException(ReturnCodeEnum.INNER_LOGIN, "查询-selectOne-${className} 未查询到任何记录 queryBean = " + bean+"   forUpdate="+forUpdate);
+                throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "查询-selectOne-${className} 未查询到任何记录 queryBean = " + bean+"   forUpdate="+forUpdate);
             }
         }
         return null;
@@ -201,7 +204,7 @@ public class ${className}Service {
     * @param orderClause  排序条件，如："id asc"
     * @return
     */
-    public List<${className}> selectByBean(${className} bean, int page, int size, String orderClause) {
+    public List<${className}> selectByBean(${className} bean,int page, int size,String orderClause) {
         ${className}Example search = this.createExample(bean,orderClause);
         page = Math.max(1, page);
         size = Math.max(1, size);
@@ -216,7 +219,7 @@ public class ${className}Service {
                 boolean verifyResult = this.verifySign(record);
                 if (!verifyResult) {
                     log.error("查询-selectByBean-${className}列表验证签名失败 record={}", record);
-                    throw new BusinessException(ReturnCodeEnum.INNER_LOGIN, "查询-selectByBean-${className}列表验证签名失败 record = " + bean);
+                    throw new BusinessException(BusinessErrorCodeEnum.UN_KNOW_ERROR, "查询-selectByBean-${className}列表验证签名失败 record = " + bean);
                 }
             }
         }

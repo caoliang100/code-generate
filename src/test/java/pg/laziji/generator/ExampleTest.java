@@ -19,16 +19,6 @@ public class ExampleTest {
     @Resource
     private GeneratorService generatorService;
 
-//    @Test
-//    public void testZip() {
-//        generatorService.generateZip(new TableItem[]{
-//                TableItem.newBuilder()
-//                        .tableName("clearing_account")
-//                        .dynamicPathVariable(KeyConsts.CLASS_NAME, "TableA")
-//                        .build()
-//                ,new TableItem("sys_role")
-//        }, "/Users/caoliang/Downloads/code/code.zip");
-//    }
     @Test
     public void test() {
         generatorService.generateCodeFile(new TableItem[]{
@@ -42,7 +32,22 @@ public class ExampleTest {
 //                new TableItem("clearing_freeze_record"),
 //                new TableItem("clearing_push_message"),
 //                new TableItem("clearing_business_type"),
-                new TableItem("clearing_transfer_record")
+//                new TableItem("clearing_trade_record"),
+//                new TableItem("clearing_transfer_record"),
+//                new TableItem("clearing_add_deduct_record"),
+//                new TableItem("clearing_trade_record"),
         }, "/Users/caoliang/IdeaProjects/clearing-account/clearing-account-biz/");
     }
+//    @Test
+//    public void test() {
+//        generatorService.generateCodeFile(new TableItem[]{
+//                new TableItem("finance_account"),
+//                new TableItem("finance_account_amount_record"),
+//                new TableItem("finance_account_amount_record_opt_record"),
+//                new TableItem("finance_profit_collect"),
+//                new TableItem("finance_profit_collect_record"),
+//                new TableItem("finance_subject"),
+//                new TableItem("finance_subject_category"),
+//        }, "/Users/caoliang/IdeaProjects/finance/finance-biz/");
+//    }
 }
